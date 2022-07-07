@@ -1,0 +1,12 @@
+/* The *.h.in file is an input file for CMAKE which generates the resulting *.h
+ * file, to be included in the application source. */
+
+#ifndef APP_CONFIG_H
+#define APP_CONFIG_H
+
+#define APP_VERSION_MAJOR @APP_VERSION_MAJOR@
+#define APP_VERSION_MINOR @APP_VERSION_MINOR@
+#define APP_VERSION_PATCH @APP_VERSION_PATCH@
+#define APP_VERSION_STRING "@APP_VERSION_STRING@"
+
+#endif  //APP_CONFIG_H
