@@ -12,8 +12,10 @@
 
 #include <cstdio>
 #include <cstring>
+#include <iomanip>
 #include <iostream>
 #include <optional>
+#include <ranges>
 #include <vector>
 
 #include "ifenum_config.h"
@@ -108,14 +110,12 @@ static bool operator ==(sockaddr const& a, sockaddr const& b)
     return a.sa_family == b.sa_family && memcmp(a.sa_data, b.sa_data, sz) == 0;
 }
 
-static std::string findAf(int fam)
+static std::string afString(int fam)
 {
-    auto it = std::find_if(std::begin(afLookup), std::end(afLookup),
-        [fam]( svPair const& af){return af.val == fam;});
+    auto it = std::ranges::find_if(afLookup, [fam](svPair const& af){return af.val == fam;});
     if (it == std::end(afLookup))
         return "af_unkwn_" + std::to_string(fam);
-    else
-        return std::string(it->name);
+    return std::string(it->name);
 };
 
 static std::string addrStr(sockaddr const *const saddr)
@@ -163,7 +163,7 @@ static void enumAddresses(ifaddrs const* addr)
             continue;
 
         std::cout << addr->ifa_name << ": "
-                  << findAf(addr->ifa_addr->sa_family) << ' '
+                  << afString(addr->ifa_addr->sa_family) << ' '
                   << addrStr(addr->ifa_addr) << '/' << addrStr(addr->ifa_netmask);
         std::cout << " [";
         bool first = true;
@@ -250,8 +250,8 @@ static argsReturn processArgs(int argc, char * const argv[])
 
         case argFam: {
                 std::string_view arg(optarg);
-                auto it = std::find_if(std::begin(afLookup), std::end(afLookup),
-                        [&arg]( svPair const& af) {return af.name == arg;});
+                auto it = std::ranges::find_if(afLookup,
+                                [&arg](svPair const& af) {return af.name == arg;});
                 if (it == std::end(afLookup)) {
                     std::cerr << "unknown family '" << arg << "'\n";
                     return argsReturn::error;
@@ -315,17 +315,23 @@ int main(int argc, char **argv)
     if (!addrs.empty()) {
         std::cout << "Address filters:\n";
         for (auto const& i : addrs)
-            std::cout <<  (i.sa_family == AF_INET ? "AF_INET  " : "AF_INET6 ") << addrStr(&i) << '\n';
+            std::cout << std::left << std::setw(9) << afString(i.sa_family) << ' ' << addrStr(&i) << '\n';
     }
+
     ifaddrs *addrList;
     if (int ret = getifaddrs(&addrList); ret != 0) {
         char errString[64];
-        std::cerr << "could not enumerate addresses: " << strerror_r(errno, errString, sizeof(errString)) << '\n';
+        std::cerr << "could not enumerate addresses: "
+                  << strerror_r(errno, errString, sizeof(errString)) << '\n';
         return EXIT_FAILURE;
     }
 
     std::sort(interfaces.begin(), interfaces.end());
     interfaces.erase(std::unique(interfaces.begin(), interfaces.end()), interfaces.end());
+
+    std::sort(families.begin(), families.end());
+    families.erase(std::unique(families.begin(), families.end()), families.end());
+
     enumAddresses(addrList);
     freeifaddrs(addrList);
     return EXIT_FAILURE;
