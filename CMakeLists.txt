@@ -5,12 +5,12 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-project(ifenum VERSION 1.0 LANGUAGES CXX)
 # The version number.
 set(APP_VERSION_MAJOR "1")
 set(APP_VERSION_MINOR "0")
 set(APP_VERSION_PATCH "2")
 set(APP_VERSION_STRING "${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}.${APP_VERSION_PATCH}")
+project(ifenum VERSION ${APP_VERSION_STRING} LANGUAGES CXX)
 
 add_executable(ifenum main.cpp)
 target_compile_features(ifenum PUBLIC "cxx_std_20")
@@ -29,7 +29,12 @@ check_ipo_supported(RESULT ipo_supported OUTPUT error)
 
 option(enable_asan "build with address sanitizer" FALSE)
 option(enable_ubsan "build with undefined behavior sanitizer" FALSE)
-option(WITH_LTO "build with link-time (inter-procedural) optimization (LTO, IPO)" TRUE)
+option(enable_lto "build with link-time (inter-procedural) optimization (LTO, IPO)" TRUE)
+option(static_libs "link with static libraries" FALSE)
+
+if(static_libs)
+  set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++ -static")
+endif()
 
 # Optional compiler options:
 target_compile_options(ifenum PRIVATE -march=native -Wall -Werror)
@@ -55,7 +60,7 @@ if(ubsan)
     target_link_libraries(ifenum PRIVATE ubsan)
 endif()
 
-if(${WITH_LTO})
+if(${enable_lto})
     if(${ipo_supported})
         set_property(TARGET ifenum PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
     else()
